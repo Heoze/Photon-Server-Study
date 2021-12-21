@@ -2,234 +2,94 @@
 using System.Collections.Generic;
 
 using UnityEngine;
-using UnityEngine.UI;
 
-using Photon.Pun;
-using Photon.Realtime;
-
-public class PlayerMove : MonoBehaviourPunCallbacks, IPunObservable
-{
-    public PhotonView PV;
-    GameManager GM;
-    AudioManager AM;
-
-    public ScoreManager SM;
-
-    Animator anim;
-    Rigidbody2D rigid;
-    SpriteRenderer renderer;
-
-    public Text NickNameText;
-
-    public float jumpPower;
-    public float movePower;
-
-    public GameObject explosion;
-    SpriteRenderer exp_renderer;
-    Transform exp_transform;
-
-    Vector3 curPos;
-
-    GameObject bullet;
-
-    public int HP;
+public class PlayerMove : MonoBehaviour {
+    public Transform trans;
+    public Rigidbody2D rigid;
+    public Animator anim;
+    public SpriteRenderer renderer;
 
     void Awake() {
-        GM = GameObject.Find("GameManager").GetComponent<GameManager>();
-        AM = GameObject.Find("Audio").GetComponent<AudioManager>();
-
-        renderer = GetComponent<SpriteRenderer>();
-        anim = GetComponent<Animator>();
-        rigid = GetComponent<Rigidbody2D>();
-
-        exp_renderer = explosion.GetComponent<SpriteRenderer>();
-        exp_transform = explosion.GetComponent<Transform>();
-
-        // 닉네임 불러오기
-        NickNameText.text = PV.IsMine ? PhotonNetwork.NickName : PV.Owner.NickName;
-        NickNameText.color = PV.IsMine ? Color.green : Color.red;
-
-        if(PV.IsMine) {
-            AM.sound[2].Play();
-
-            gameObject.layer = 8;
-            gameObject.tag = "LocalPlayer";
-            gameObject.name = PhotonNetwork.NickName;
-        }
-        else {
-            gameObject.GetComponent<ScoreManager>().enabled = false;
-            gameObject.name = PV.Owner.NickName;
-        }
 
     }
 
-    void FixedUpdate()
-    {
+    void Update() {
         Move();
         Jump();
-    }
-
-    void Update()
-    {
         Shot();
     }
 
-    Vector3 movement;
-    void Move()
-    {
-        if(PV.IsMine) {
-            Vector3 moveVelocity = Vector3.zero;
+    // 플레이어 이동
+    void Move() {                                      // rigidbody.AddForce로 하면 더 자연스럽게 구현 가능하다.
+        float direction = Input.GetAxis("Horizontal");
+        // Input.GetAxis("Horizontal"): 방향키 입력 -1.0 ~ 1.0 (음수면 왼쪽, 양수면 오른쪽, 0이면 눌리지 않음)
+        direction /= 10; // 수치 조정(= 속도 조절)
 
-            if (Input.GetAxisRaw("Horizontal") < 0)
-            {
-                moveVelocity = Vector3.left;
-                renderer.flipX = true;
-            }
+        trans.Translate(new Vector3(direction, 0f, 0f)); 
+        // Transform.Translate: 상대 좌표값을 주면, 그 만큼 이동한다.
 
-            else if (Input.GetAxisRaw("Horizontal") > 0)
-            {
-                moveVelocity = Vector3.right;
+        if(trans.position.y < -15f)
+            trans.position = new Vector3(0f, 0f, 0f);
+
+
+        // 애니메이션
+        if(direction != 0) { // 이동 중이라면,
+            anim.SetBool("isWalking", true);
+
+            if(direction > 0) // 오른쪽으로 이동 중
                 renderer.flipX = false;
-            }
-
-            transform.position += moveVelocity * movePower * Time.deltaTime;
-
-            if (moveVelocity == Vector3.zero) // isWalking false
-                anim.SetBool("isWalking", false);
-            else // true
-                anim.SetBool("isWalking", true);
-
-            PV.RPC("AnimRPC", RpcTarget.All, anim.GetBool("isWalking"), renderer.flipX);
-
-            if (transform.position.y < -15) {
-                AM.sound[2].Play();
-
-                SM.blink = 10;
-                SM.Blink();
-
-                transform.position = new Vector3(0, 0, 0);
-            }
-
-            if(SM.HP <= 0) {
-                AM.sound[6].Play();
-                Invoke("dead", 0.5f);
-                SM.HP=6;
-            }
-            PV.RPC("colorRPC", RpcTarget.All, SM.blink > 0 && SM.blink%2 == 0);
-
-            HP = SM.HP;
-            PV.RPC("hpRPC", RpcTarget.All, HP);
-
-            if(SM.Score >= 100) {
-                PV.RPC("GameEndRPC", RpcTarget.All, PhotonNetwork.NickName);
-            }
+            else
+                renderer.flipX = true;
         }
-        else {
-            if ((transform.position - curPos).sqrMagnitude >= 10) transform.position = curPos;
-            else transform.position = Vector3.Lerp(transform.position, curPos, Time.deltaTime * 9999999);
+        else // 이동 중이 아니라면
+            anim.SetBool("isWalking", false);
+    }
+
+    // 플레이어 점프
+    void Jump() {
+        if(Input.GetKeyDown(KeyCode.Z)) {
+            rigid.AddForce(new Vector3(0f, 10f, 0f), ForceMode2D.Impulse);
+            // rigid.AddForce: rigidbody2D에 힘을 주어서 위치 변경시키기
+            // ForceMode.Impulse: 순간적으로 힘을 줄 때 (Ex. 타격, 폭발..)
+
+            // 애니메이션
+            anim.SetTrigger("Jumping");
         }
     }
 
-    void dead() {
-        /*GM.Roaded();
-        PV.RPC("DestroyRPC", RpcTarget.All);*/
+    // 총알 발사
+    public GameObject bulletPrefab;
 
-        transform.position = new Vector3(0, 0, 0);
-        SM.blink = 10;
-        SM.Blink();
-        SM.Score = Mathf.Clamp(SM.Score-50, 0, 999);
-    }
-
-    void Jump()
-    {
-        if(PV.IsMine) {
-            if(Input.GetKeyDown(KeyCode.Z)) {
-                AM.sound[4].Play();
-                PV.RPC("JumpRPC", RpcTarget.All);
-
-                rigid.velocity = Vector2.zero;
-
-                Vector2 jumpVelocity = new Vector2(0, jumpPower);
-                rigid.AddForce(jumpVelocity, ForceMode2D.Impulse);
-            }
-        }
-    }
-
-    int shot_num;
-    void deactivate() {
-        shot_num--;
-
-        if(shot_num == 0)
-            exp_renderer.color = new Color(1f, 1f, 1f, 0f);
-    }
     void Shot() {
-        if(PV.IsMine) {
-            if(Input.GetKeyDown(KeyCode.C)) {
-                Quaternion tmp;
-                if(renderer.flipX)
-                    tmp = Quaternion.Euler(new Vector3(0f, 180f, 0f));
-                else
-                    tmp = Quaternion.Euler(new Vector3(0f, 0f, 0f));
+        if(Input.GetKeyDown(KeyCode.X)) {
 
-                bullet = PhotonNetwork.Instantiate("Bullet", exp_transform.position, tmp);
-                PV.RPC("ShootRPC", RpcTarget.All);
-            }
+            // 총알 생성
+            GameObject bullet = Instantiate(bulletPrefab, transform.position, Quaternion.identity);
+            
+
+            // 총알 위치 조정
+            SpriteRenderer bullet_renderer = bullet.GetComponent<SpriteRenderer>();
+            // bullet의 SpriteRenderer 컴포넌트 가져오기
+
+            if(renderer.flipX) // 플레이어가 왼쪽을 향해 있음
+                bullet.transform.Translate(-0.8f, -0.15f, 0f);
+            else 
+                bullet.transform.Translate(0.8f, -0.15f, 0f);
+
+            bullet_renderer.flipX = renderer.flipX;
+
+
+            // 총알 발사
+            Rigidbody2D bullet_rigid = bullet.GetComponent<Rigidbody2D>();
+
+            if(renderer.flipX) // 플레이어가 왼쪽을 향해 있음
+                bullet_rigid.AddForce(new Vector3(-10f, 0f, 0f), ForceMode2D.Impulse);
+            else
+                bullet_rigid.AddForce(new Vector3(10f, 0f, 0f), ForceMode2D.Impulse);
+
+
+            // 5초 뒤에 총알 삭제하기
+            Destroy(bullet, 2f);
         }
-        exp_renderer.flipX = renderer.flipX;
-
-        exp_transform.position = transform.position;
-        if(renderer.flipX) {
-            exp_transform.position += new Vector3(-0.83f, -0.18f, 0);
-        }
-        else {
-            exp_transform.position += new Vector3(0.83f, -0.18f, 0);
-        }
-    }
-
-    // 애니메이션 정보 전달
-    [PunRPC]
-    void AnimRPC(bool isWalking, bool filpX){
-        anim.SetBool("isWalking", isWalking);
-        renderer.flipX = filpX;
-    } 
-
-    [PunRPC]
-    void JumpRPC()=> anim.SetTrigger("Jumping");
-
-    [PunRPC]
-    void colorRPC(bool blink) {
-        if(blink) renderer.color = new Color(1f, 1f, 1f, 0.5f);
-        else renderer.color = new Color(1f, 1f, 1f, 1f);
-    }
-
-    [PunRPC]
-    void ShootRPC() {
-        AM.sound[3].Play();
-
-        anim.SetTrigger("Shooting");
-        exp_renderer.color = new Color(1f, 1f, 1f, 1f);
-
-        Invoke("deactivate", 0.5f);
-        shot_num++;
-    }
-
-    [PunRPC]
-    void hpRPC(int hp)=> HP = hp;
-
-    [PunRPC]
-    void GameEndRPC(string winner) {
-        GM.GameEnding(winner);
-    }
-
-    [PunRPC]
-    void DestroyRPC() => Destroy(gameObject);
-    
-    // 위치 정보 공유
-    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
-    {
-        if (stream.IsWriting)
-            stream.SendNext(transform.position);
-        else
-            curPos = (Vector3)stream.ReceiveNext();
     }
 }

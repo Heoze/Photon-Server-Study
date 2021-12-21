@@ -111,7 +111,7 @@ Animator:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 150176650896577299}
-  m_Enabled: 1
+  m_Enabled: 0
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: 36c5030042e957f46b4a31485b79f2b2, type: 2}
   m_CullingMode: 0
@@ -150,12 +150,11 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 150176650896577299}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ff1601c852f239c48b157976aea07931, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  PV: {fileID: 6573797822695299772}
 --- !u!114 &6573797822695299772
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -174,8 +173,7 @@ MonoBehaviour:
   Synchronization: 3
   OwnershipTransfer: 0
   observableSearch: 2
-  ObservedComponents:
-  - {fileID: 150176650896577300}
+  ObservedComponents: []
   sceneViewId: 0
   InstantiationId: 0
   isRuntimeInstantiated: 0
