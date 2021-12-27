@@ -1,78 +1,50 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+//using System.Linq;
 
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 
 // 에셋에서 Photon Pun2 Free 임포트
 using Photon.Pun;
 using Photon.Realtime;
 
 // 해시테이블(= HashMap(in java))을 쓸 때, 작성해주어야 함.. (포톤과의 충돌때문에)
-using Hashtable = ExitGames.Client.Photon.Hashtable;
+// using Hashtable = ExitGames.Client.Photon.Hashtable;
 
-public class GameManager : MonoBehaviourPunCallbacks
-{
-    public ChattingManager CM;
-	public GameObject[] scene;
+public class GameManager : MonoBehaviourPunCallbacks {
+    public InputField nicknameInput;
 
-	public InputField NickNameInput;
+    public GameObject[] view;
 
-	GameObject LocalPlayer;
-
-	public Image[] healthView = new Image[3];
-	public Image[] scoreView = new Image[3];
-	
-
-    public Text result;
-
-	void Awake() {
-        PhotonNetwork.ConnectUsingSettings();
-
-        if(PhotonNetwork.InRoom) Roaded();
+    public GameObject Player;
+    
+    void Awake() {
+        ChangeView(0);
+        PhotonNetwork.ConnectUsingSettings(); // 네트워크 연결
     }
 
     public void GameStart() {
-    	scene[1].SetActive(false);
-        scene[3].SetActive(false);
+        if(PhotonNetwork.InLobby) {
+            ChangeView(2);
 
-    	scene[2].SetActive(true);
+            RoomOptions option = new RoomOptions();
+            option.MaxPlayers = 20;
+            PhotonNetwork.JoinOrCreateRoom("ROOM", option, null);
 
-    	// 닉네임 설정
-    	PhotonNetwork.LocalPlayer.NickName = NickNameInput.text;
-    	// Player 소환
-    	LocalPlayer = PhotonNetwork.Instantiate("Player", new Vector3(0, 0, 0), Quaternion.identity);
-
-        CM.GameStart();
+            PhotonNetwork.LocalPlayer.NickName = nicknameInput.text;
+         }
     }
 
-    public void Roaded() {
-    	scene[0].SetActive(false);
-    	scene[2].SetActive(false);
-        scene[3].SetActive(false);
+    public override void OnConnectedToMaster() => PhotonNetwork.JoinLobby();
+    public override void OnJoinedLobby() => ChangeView(1);
 
-    	scene[1].SetActive(true);
+    public override void OnJoinedRoom() => PhotonNetwork.Instantiate("Player", new Vector3(0f, 0f, 0f), Quaternion.identity);
+
+    void ChangeView(int num) {
+        for(int i = 0; i < 3; i++) {
+            if(i == num) view[i].SetActive(true);
+            else view[i].SetActive(false);
+        }
     }
-
-    public void GameEnding(string winner) {
-        scene[2].SetActive(false);
-        scene[3].SetActive(true);
-
-        result.text = "WINNER IS " + winner;
-    }
-
-    public void Restart() {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-        Roaded();
-    }
-
-    public override void OnConnectedToMaster()=> PhotonNetwork.JoinLobby();
-    public override void OnJoinedLobby() {
-    	RoomOptions ros = new RoomOptions();
-        ros.MaxPlayers = 20;
-        PhotonNetwork.JoinOrCreateRoom("ROOM", ros, null);
-    }
-    public override void OnJoinedRoom()=> Roaded();
 }

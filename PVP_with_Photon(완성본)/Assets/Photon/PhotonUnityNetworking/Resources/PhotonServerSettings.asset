@@ -49,6 +49,8 @@ MonoBehaviour:
   - GameOverRPC
   - GameEndRPC
   - ChatRPC
+  - Sysn_Movement
+  - Sync_FlipX
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
