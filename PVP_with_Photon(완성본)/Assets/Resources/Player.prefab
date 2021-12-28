@@ -266,8 +266,6 @@ MonoBehaviour:
   anim: {fileID: 4912451347780344081}
   renderer: {fileID: 4912451347780344082}
   am: {fileID: 7883022575977646146}
-  bulletPrefab: {fileID: 150176650896577299, guid: e8f0100f919ee8d469c12513ff819083,
-    type: 3}
 --- !u!114 &4912451347780344110
 MonoBehaviour:
   m_ObjectHideFlags: 0

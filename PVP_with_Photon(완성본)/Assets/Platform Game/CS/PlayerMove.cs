@@ -44,10 +44,8 @@ public class PlayerMove : MonoBehaviourPunCallbacks {
     // 플레이어 이동
     void Move() {
         float direction = Input.GetAxis("Horizontal");
-
-        direction /= 10;
-
-        trans.Translate(new Vector3(direction, 0f, 0f)); 
+        
+        trans.Translate(new Vector3(direction/10, 0f, 0f));
 
         if(trans.position.y < -15f) {
             am.sound[2].Play();
